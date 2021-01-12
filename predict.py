@@ -151,5 +151,4 @@ if __name__ == '__main__':
 
     image = yolo.detect_image(image)
     image.show()
-    image.save("show.jpg")
 
