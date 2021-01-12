@@ -4,6 +4,7 @@
 # @Time : 2020/5/8 14:27
 # @Software: PyCharm
 # @Brief: 获取预测框的数据，并转mAP的txt检测格式
+import tensorflow as tf
 from predict import Yolov4Predict
 from PIL import Image
 import config.config as cfg

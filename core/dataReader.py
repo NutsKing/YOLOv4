@@ -464,11 +464,11 @@ class DataReader:
         true_boxes[..., 2:4] = boxes_wh / input_shape
 
         # 生成3种特征大小的网格
-        grid_shapes = [input_shape // [32, 16, 8][i] for i in range(cfg.num_bbox)]
+        grid_shapes = [input_shape // [32, 16, 8][i] for i in range(len(cfg.anchor_masks))]
         # 创建3个特征大小的全零矩阵，[(b, 13, 13, 3, 25), ... , ...]存在列表中
         y_true = [np.zeros((self.batch_size,
                             grid_shapes[i][0], grid_shapes[i][1], cfg.num_bbox, 5 + cfg.num_classes),
-                           dtype='float32') for i in range(cfg.num_bbox)]
+                           dtype='float32') for i in range(len(cfg.anchor_masks))]
 
         # 计算哪个先验框比较符合 真实框的Gw,Gh 以最高的iou作为衡量标准
         # 因为先验框数据没有坐标，只有宽高，那么现在假设所有的框的中心在（0，0），宽高除2即可。（真实框也要做一样的处理才能匹配）
@@ -509,7 +509,7 @@ class DataReader:
                 true_iou_mask = np.where(iou_mask)[0]
                 for value in true_iou_mask:
 
-                    n = (cfg.num_bbox - 1) - value // len(cfg.anchor_masks)
+                    n = (len(cfg.anchor_masks) - 1) - value // cfg.num_bbox
 
                     # 保证value（先验框的索引）的在anchor_masks[n]中 且 iou 大于阈值
                     x = np.floor(true_boxes[b, key, 0] * grid_shapes[n][1]).astype('int32')
@@ -530,7 +530,7 @@ class DataReader:
             # 如果前面根据iou筛选框，并没有合适的框，则这一步计算出最匹配iou的作为先验框
             best_anchors = np.argmax(iou, axis=-1)
             for key, value in enumerate(best_anchors):
-                n = (cfg.num_bbox - 1) - value // len(cfg.anchor_masks)
+                n = (len(cfg.anchor_masks) - 1) - value // cfg.num_bbox
                 # 如果没有写入，就写入最匹配的anchor
                 if not written[key]:
                     x = np.floor(true_boxes[b, key, 0] * grid_shapes[n][1]).astype('int32')
@@ -545,7 +545,7 @@ class DataReader:
                     y_true[n][b, y, x, k, 4] = 1       # 置信度是1 因为含有目标
                     y_true[n][b, y, x, k, 5 + c] = 1   # 类别的one-hot编码，其他都为0
 
-        return y_true
+        return y_true[0], y_true[1], y_true[2]
 
     def generate(self, mode):
         """
@@ -582,13 +582,13 @@ class DataReader:
                         i = (i + 1) % n
                     else:
                         e = rand(0, 1)
-                        if e <= 0.35:
+                        if e <= 0.25:
                             train_data = self.train_lines[i: i+4]
                             if i + 4 > n:
                                 train_data += self.train_lines[0: (i + 4) % n]
                             image, bbox = self.get_mosaic_data(train_data)
                             i = (i + 4) % n
-                        elif 0.3 < e <= 0.6:
+                        elif 0.25 < e <= 0.5:
                             train_data = self.train_lines[i: i+2]
                             if i + 2 > n:
                                 train_data += self.train_lines[0: (i + 2) % n]

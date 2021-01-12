@@ -60,10 +60,27 @@ def main():
 
     # 读取数据
     reader = DataReader(cfg.annotation_path, cfg.input_shape, cfg.batch_size, cfg.data_augmentation)
-    train_data = reader.generate('train')
-    validation_data = reader.generate('validation')
+    # train_data = reader.generate('train')
+    # validation_data = reader.generate('validation')
     train_steps = len(reader.train_lines) // cfg.batch_size
     validation_steps = len(reader.validation_lines) // cfg.batch_size
+
+    w, h = cfg.input_shape
+    image_shape = (None, h, w, 3)
+    y13_shape = (None, h // 32, w // 32, len(cfg.anchor_masks[0]), 5 + cfg.num_classes)
+    y26_shape = (None, h // 16, w // 16, len(cfg.anchor_masks[0]), 5 + cfg.num_classes)
+    y52_shape = (None, h // 8, w // 8, len(cfg.anchor_masks[0]), 5 + cfg.num_classes)
+
+    train_data = tf.data.Dataset.from_generator(reader.generate,
+                                                args=['train'],
+                                                output_types=(tf.float32, (tf.float32, tf.float32, tf.float32)),
+                                                output_shapes=(image_shape, (y13_shape, y26_shape, y52_shape))
+                                                )
+    validation_data = tf.data.Dataset.from_generator(reader.generate,
+                                                     args=['validation'],
+                                                     output_types=(tf.float32, (tf.float32, tf.float32, tf.float32)),
+                                                     output_shapes=(image_shape, (y13_shape, y26_shape, y52_shape))
+                                                     )
 
     print('Train on {} samples, val on {} samples, with batch size {}.'.format(len(reader.train_lines),
                                                                                len(reader.validation_lines),
@@ -91,7 +108,6 @@ def train_by_fit(model, train_datasets, valid_datasets, train_steps, valid_steps
     :return: None
     """
     cbk = [
-        callbacks.EarlyStopping(patience=10, verbose=1),
         callbacks.ModelCheckpoint('./model/yolov4_{val_loss:.04f}.h5', save_best_only=True, save_weights_only=True)
     ]
 
