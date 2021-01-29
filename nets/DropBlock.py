@@ -6,8 +6,6 @@
 # @Brief: 自定义Layer实现DropBlock
 from tensorflow.keras import layers, backend
 import numpy as np
-import copy
-import time
 
 
 class DropBlock2D(layers.Layer):
@@ -104,7 +102,7 @@ class DropBlock2D(layers.Layer):
         config = {'block_size': self.block_size,
                   'gamma': self.gamma,
                   'seed': self.seed}
-        base_config = super(DropBlock, self).get_config()
+        base_config = super(DropBlock2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
     def compute_output_shape(self, input_shape):
